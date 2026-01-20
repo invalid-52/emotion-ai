@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoodMate Pro</title>
+
+<style>
+:root {
+    --bg: #0f172a;
+    --card: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.15);
+    --primary: #818cf8;
+    --accent: #22d3ee;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, sans-serif;
+}
+
+body {
+    background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 900px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+}
+
+@media (max-width: 850px) {
+    .container { grid-template-columns: 1fr; }
+}
+
+.left, .right {
+    padding: 30px;
+}
+
+.left {
+    border-right: 1px solid var(--border);
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.tab.active {
+    background: var(--card);
+    color: var(--text);
+}
+
+textarea {
+    width: 100%;
+    height: 150px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 15px;
+    color: white;
+    resize: none;
+}
+
+video {
+    width: 100%;
+    border-radius: 14px;
+    transform: scaleX(-1);
+}
+
+button.action {
+    width: 100%;
+    margin-top: 15px;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, var(--primary), #c084fc);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none;
+}
+
+#emotion {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--accent);
+    margin-bottom: 20px;
+}
+
+ul {
+    list-style: none;
+}
+
+li {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- LEFT -->
+<div class="left">
+    <h1>MoodMate Pro</h1>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('text')">Text</button>
+        <button class="tab" onclick="switchTab('camera')">Camera</button>
+    </div>
+
+    <!-- TEXT -->
+    <div id="textMode">
+        <textarea id="textInput" placeholder="Type how you feel..."></textarea>
+        <button class="action" onclick="analyzeText()">Analyze Text</button>
+    </div>
+
+    <!-- CAMERA -->
+    <div id="cameraMode" class="hidden">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="canvas" class="hidden"></canvas>
+        <button class="action" onclick="analyzeCamera()">Capture Emotion</button>
+    </div>
+</div>
+
+<!-- RIGHT -->
+<div class="right">
+    <div>Detected Emotion</div>
+    <div id="emotion">Waiting...</div>
+
+    <div>Recommended Songs</div>
+    <ul id="songs">
+        <li>No songs yet</li>
+    </ul>
+</div>
+
+</div>
+
+<script>
+let stream = null;
+
+// ---------------- TAB SWITCH ----------------
+function switchTab(mode) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#textMode, #cameraMode').forEach(m => m.classList.add('hidden'));
+
+    if (mode === 'text') {
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        document.getElementById('textMode').classList.remove('hidden');
+        stopCamera();
+    } else {
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        document.getElementById('cameraMode').classList.remove('hidden');
+        startCamera();
+    }
+}
+
+// ---------------- CAMERA ----------------
+async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        document.getElementById('webcam').srcObject = stream;
+    } catch (e) {
+        document.getElementById('emotion').innerText = "Camera access denied";
+    }
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+    }
+}
+
+// ---------------- ANALYSIS ----------------
+function analyzeText() {
+    const text = document.getElementById('textInput').value.trim();
+    if (!text) return;
+
+    sendRequest({
+        input_type: "text",
+        data: text
+    });
+}
+
+function analyzeCamera() {
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    const base64 = canvas.toDataURL("image/jpeg");
+
+    sendRequest({
+        input_type: "face",
+        data: base64
+    });
+}
+
+// ---------------- API CALL ----------------
+function sendRequest(payload) {
+    document.getElementById('emotion').innerText = "Analyzing...";
+    document.getElementById('songs').innerHTML = "";
+
+    fetch("http://127.0.0.1:5000/full-pipeline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(err => { throw err });
+        }
+        return res.json();
+    })
+    .then(data => {
+        document.getElementById('emotion').innerText = data.emotion || "neutral";
+
+        const ul = document.getElementById('songs');
+        ul.innerHTML = "";
+
+        if (!data.songs || data.songs.length === 0) {
+            ul.innerHTML = "<li>No recommendations found</li>";
+            return;
+        }
+
+        data.songs.forEach(song => {
+            const li = document.createElement("li");
+            li.innerHTML = `<strong>${song.name}</strong><br>${song.artist} • ${song.genre}`;
+            ul.appendChild(li);
+        });
+    })
+    .catch(err => {
+        console.error(err);
+        document.getElementById('emotion').innerText = "Server error";
+        document.getElementById('songs').innerHTML = "<li>Check backend logs</li>";
+    });
+}
+</script>
+
+</body>
+</html>
