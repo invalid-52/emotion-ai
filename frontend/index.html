@@ -246,7 +246,7 @@ function sendRequest(payload) {
     document.getElementById('emotion').innerText = "Analyzing...";
     document.getElementById('songs').innerHTML = "";
 
-    fetch("http://127.0.0.1:5000/full-pipeline", {
+    fetch("https://emotion-ai-0325.onrender.com/full-pipeline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
