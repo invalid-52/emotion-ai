@@ -96,8 +96,37 @@
             50% { height: 28px; }
         }
 
-        .active-view { opacity: 1; transform: translateY(0); pointer-events: auto; }
-        .inactive-view { opacity: 0; transform: translateY(20px); pointer-events: none; position: absolute; top: 0; width: 100%; }
+        /* NEW ANIMATION CLASSES */
+        .view-transition {
+            transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            width: 100%;
+        }
+
+        .view-center {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            pointer-events: auto;
+            position: relative;
+            filter: blur(0);
+        }
+
+        .view-left {
+            opacity: 0;
+            transform: translateX(-120px) scale(0.95);
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            filter: blur(10px);
+        }
+
+        .view-right {
+            opacity: 0;
+            transform: translateX(120px) scale(0.95);
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            filter: blur(10px);
+        }
 
         .hidden { display: none !important; }
         .custom-scroll::-webkit-scrollbar { width: 5px; }
@@ -180,81 +209,86 @@
             </div>
         </header>
 
-        <!-- DASHBOARD -->
-        <div id="view-dashboard" class="active-view transition-all duration-700">
-            <main class="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                <div class="lg:col-span-7 space-y-10">
-                    <div class="glass p-3">
-                        <div class="flex p-3 gap-3 neumorphic-inset">
-                            <button id="tabText" onclick="switchMode('text')" class="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-[0.2em] bg-white text-indigo-500 shadow-md">SEMANTIC</button>
-                            <button id="tabCamera" onclick="switchMode('camera')" class="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-[0.2em] text-slate-400">BIOMETRIC</button>
-                        </div>
-                        <div class="p-8">
-                            <div id="textMode">
-                                <textarea id="textInput" placeholder="How are you feeling today?" class="w-full h-72 bg-transparent border-none p-4 text-3xl font-light text-slate-700 outline-none focus:ring-0 placeholder:text-slate-200 resize-none custom-scroll"></textarea>
-                                <button onclick="analyzeText()" class="w-full premium-btn mt-8 py-6 rounded-3xl font-black text-[10px] tracking-[0.4em] uppercase text-indigo-600">Analyze Sentiment</button>
+        <!-- WRAPPER FOR SLIDE ANIMATION -->
+        <div class="relative min-h-[700px]">
+            
+            <!-- DASHBOARD -->
+            <div id="view-dashboard" class="view-transition view-center">
+                <main class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                    <div class="lg:col-span-7 space-y-10">
+                        <div class="glass p-3">
+                            <div class="flex p-3 gap-3 neumorphic-inset">
+                                <button id="tabText" onclick="switchMode('text')" class="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-[0.2em] bg-white text-indigo-500 shadow-md">SEMANTIC</button>
+                                <button id="tabCamera" onclick="switchMode('camera')" class="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-[0.2em] text-slate-400">BIOMETRIC</button>
                             </div>
-                            <div id="cameraMode" class="hidden">
-                                <div class="relative aspect-video neumorphic-inset overflow-hidden mb-8 rounded-[2.5rem] border border-white/50">
-                                    <video id="webcam" class="w-full h-full object-cover grayscale" autoplay playsinline></video>
-                                    <canvas id="canvas" class="hidden"></canvas>
-                                    <div id="scannerLine" class="absolute top-0 left-0 w-full h-1 bg-indigo-400 shadow-[0_0_15px_#818cf8] hidden animate-scan"></div>
+                            <div class="p-8">
+                                <div id="textMode">
+                                    <textarea id="textInput" placeholder="How are you feeling today?" class="w-full h-72 bg-transparent border-none p-4 text-3xl font-light text-slate-700 outline-none focus:ring-0 placeholder:text-slate-200 resize-none custom-scroll"></textarea>
+                                    <button onclick="analyzeText()" class="w-full premium-btn mt-8 py-6 rounded-3xl font-black text-[10px] tracking-[0.4em] uppercase text-indigo-600">Analyze Sentiment</button>
                                 </div>
-                                <button onclick="analyzeCamera()" class="w-full premium-btn py-6 rounded-3xl font-black text-[10px] tracking-[0.4em] uppercase text-emerald-600">Capture Resonance</button>
+                                <div id="cameraMode" class="hidden">
+                                    <div class="relative aspect-video neumorphic-inset overflow-hidden mb-8 rounded-[2.5rem] border border-white/50">
+                                        <video id="webcam" class="w-full h-full object-cover grayscale" autoplay playsinline></video>
+                                        <canvas id="canvas" class="hidden"></canvas>
+                                        <div id="scannerLine" class="absolute top-0 left-0 w-full h-1 bg-indigo-400 shadow-[0_0_15px_#818cf8] hidden animate-scan"></div>
+                                    </div>
+                                    <button onclick="analyzeCamera()" class="w-full premium-btn py-6 rounded-3xl font-black text-[10px] tracking-[0.4em] uppercase text-emerald-600">Capture Resonance</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="lg:col-span-5">
-                    <div class="glass p-12 flex flex-col items-center text-center h-full border-t-8 border-indigo-200">
-                        <p class="text-[10px] text-slate-400 uppercase tracking-[0.6em] font-black mb-10">Analysis Results</p>
-                        <div id="vibeEmoji" class="text-9xl mb-8 transition-transform duration-500">🌑</div>
-                        <h2 id="vibeText" class="text-5xl font-black text-slate-800 italic uppercase mb-12 tracking-tighter">Waiting</h2>
-                        <div class="w-full space-y-8 flex-grow">
-                            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                                <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Sonic Recommendation</h4>
-                                <div class="wave-container">
-                                    <div class="wave-bar" style="animation-delay: 0.1s"></div>
-                                    <div class="wave-bar" style="animation-delay: 0.4s"></div>
-                                    <div class="wave-bar" style="animation-delay: 0.2s"></div>
-                                    <div class="wave-bar" style="animation-delay: 0.5s"></div>
+                    <div class="lg:col-span-5">
+                        <div class="glass p-12 flex flex-col items-center text-center h-full border-t-8 border-indigo-200">
+                            <p class="text-[10px] text-slate-400 uppercase tracking-[0.6em] font-black mb-10">Analysis Results</p>
+                            <div id="vibeEmoji" class="text-9xl mb-8 transition-transform duration-500">🌑</div>
+                            <h2 id="vibeText" class="text-5xl font-black text-slate-800 italic uppercase mb-12 tracking-tighter">Waiting</h2>
+                            <div class="w-full space-y-8 flex-grow">
+                                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Sonic Recommendation</h4>
+                                    <div class="wave-container">
+                                        <div class="wave-bar" style="animation-delay: 0.1s"></div>
+                                        <div class="wave-bar" style="animation-delay: 0.4s"></div>
+                                        <div class="wave-bar" style="animation-delay: 0.2s"></div>
+                                        <div class="wave-bar" style="animation-delay: 0.5s"></div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div id="songList" class="space-y-5 overflow-y-auto max-h-[350px] pr-2 custom-scroll">
-                                <div class="py-24 opacity-10 italic text-xs font-bold uppercase tracking-widest">Awaiting neural input...</div>
+                                <div id="songList" class="space-y-5 overflow-y-auto max-h-[350px] pr-2 custom-scroll">
+                                    <div class="py-24 opacity-10 italic text-xs font-bold uppercase tracking-widest">Awaiting neural input...</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </main>
-        </div>
+                </main>
+            </div>
 
-        <!-- ARCADE -->
-        <div id="view-arcade" class="inactive-view transition-all duration-700">
-            <div class="text-center mb-16">
-                <h2 class="text-5xl font-black text-slate-800 italic uppercase tracking-tighter">Arcade for the Soul</h2>
-                <p class="text-slate-400 mt-4 uppercase text-[10px] font-black tracking-[0.3em]">Offline mechanics active</p>
+            <!-- ARCADE -->
+            <div id="view-arcade" class="view-transition view-right">
+                <div class="text-center mb-16">
+                    <h2 class="text-5xl font-black text-slate-800 italic uppercase tracking-tighter">Arcade for the Soul</h2>
+                    <p class="text-slate-400 mt-4 uppercase text-[10px] font-black tracking-[0.3em]">Offline mechanics active</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+                    <div onclick="openGame('bubble')" class="glass p-10 flex flex-col items-center gap-8 cursor-pointer hover:bg-white transition-all">
+                        <div class="w-24 h-24 bg-cyan-50 rounded-full flex items-center justify-center text-cyan-500 text-4xl shadow-inner"><i class="fas fa-soap"></i></div>
+                        <h4 class="font-black text-slate-800 uppercase text-xs">Bubble Pop</h4>
+                    </div>
+                    <div onclick="openGame('match')" class="glass p-10 flex flex-col items-center gap-8 cursor-pointer hover:bg-white transition-all">
+                        <div class="w-24 h-24 bg-purple-50 rounded-full flex items-center justify-center text-purple-400 text-4xl shadow-inner"><i class="fas fa-th-large"></i></div>
+                        <h4 class="font-black text-slate-800 uppercase text-xs">Memory Match</h4>
+                    </div>
+                    <div onclick="openGame('breath')" class="glass p-10 flex flex-col items-center gap-8 cursor-pointer hover:bg-white transition-all">
+                        <div class="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 text-4xl shadow-inner"><i class="fas fa-wind"></i></div>
+                        <h4 class="font-black text-slate-800 uppercase text-xs">Breath Sync</h4>
+                    </div>
+                    <div onclick="openGame('catch')" class="glass p-10 flex flex-col items-center gap-8 cursor-pointer hover:bg-white transition-all">
+                        <div class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 text-4xl shadow-inner"><i class="fas fa-bullseye"></i></div>
+                        <h4 class="font-black text-slate-800 uppercase text-xs">Reflex Rain</h4>
+                    </div>
+                </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-                <div onclick="openGame('bubble')" class="glass p-10 flex flex-col items-center gap-8 cursor-pointer hover:bg-white transition-all">
-                    <div class="w-24 h-24 bg-cyan-50 rounded-full flex items-center justify-center text-cyan-500 text-4xl shadow-inner"><i class="fas fa-soap"></i></div>
-                    <h4 class="font-black text-slate-800 uppercase text-xs">Bubble Pop</h4>
-                </div>
-                <div onclick="openGame('match')" class="glass p-10 flex flex-col items-center gap-8 cursor-pointer hover:bg-white transition-all">
-                    <div class="w-24 h-24 bg-purple-50 rounded-full flex items-center justify-center text-purple-400 text-4xl shadow-inner"><i class="fas fa-th-large"></i></div>
-                    <h4 class="font-black text-slate-800 uppercase text-xs">Memory Match</h4>
-                </div>
-                <div onclick="openGame('breath')" class="glass p-10 flex flex-col items-center gap-8 cursor-pointer hover:bg-white transition-all">
-                    <div class="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 text-4xl shadow-inner"><i class="fas fa-wind"></i></div>
-                    <h4 class="font-black text-slate-800 uppercase text-xs">Breath Sync</h4>
-                </div>
-                <div onclick="openGame('catch')" class="glass p-10 flex flex-col items-center gap-8 cursor-pointer hover:bg-white transition-all">
-                    <div class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 text-4xl shadow-inner"><i class="fas fa-bullseye"></i></div>
-                    <h4 class="font-black text-slate-800 uppercase text-xs">Reflex Rain</h4>
-                </div>
-            </div>
-        </div>
+
+        </div> <!-- End Relative Wrapper -->
     </div>
 
     <!-- MODAL -->
@@ -321,15 +355,26 @@
             const arcade = document.getElementById('view-arcade');
             const btnDash = document.getElementById('nav-dashboard');
             const btnArcade = document.getElementById('nav-arcade');
+
             if(view === 'dashboard') {
-                dash.classList.remove('inactive-view'); dash.classList.add('active-view');
-                arcade.classList.add('inactive-view'); arcade.classList.remove('active-view');
+                // Moving Left: Dash comes to Center, Arcade goes to Right
+                dash.classList.remove('view-left', 'view-right');
+                dash.classList.add('view-center');
+                
+                arcade.classList.remove('view-center', 'view-left');
+                arcade.classList.add('view-right');
+
                 btnDash.classList.add('bg-white', 'text-indigo-500', 'shadow-md');
                 btnArcade.classList.remove('bg-white', 'text-indigo-500', 'shadow-md');
                 btnArcade.classList.add('text-slate-400');
             } else {
-                arcade.classList.remove('inactive-view'); arcade.classList.add('active-view');
-                dash.classList.add('inactive-view'); dash.classList.remove('active-view');
+                // Moving Right: Dash goes Left, Arcade comes to Center
+                arcade.classList.remove('view-left', 'view-right');
+                arcade.classList.add('view-center');
+                
+                dash.classList.remove('view-center', 'view-right');
+                dash.classList.add('view-left');
+
                 btnArcade.classList.add('bg-white', 'text-indigo-500', 'shadow-md');
                 btnDash.classList.remove('bg-white', 'text-indigo-500', 'shadow-md');
                 btnDash.classList.add('text-slate-400');
@@ -389,8 +434,8 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, 640, 480);
             
-            // UPDATED IMAGE LOGIC: Match Render backend expectation (strip prefix)
-            const base64 = canvas.toDataURL("image/jpeg", 0.7).split(',')[1];
+            // FIX: Send full data URI so backend can split it (resolves "expected 2, got 1" error)
+            const base64 = canvas.toDataURL("image/jpeg", 0.7);
             
             performAnalysis({ input_type: "face", data: base64 });
         }
@@ -404,6 +449,7 @@
 
             document.getElementById('vibeText').innerText = "Syncing...";
             try {
+                // Added mode and credentials to handle some network policies better
                 const res = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
